@@ -50,3 +50,19 @@ func (p Puzzle) String() string {
 
 	return s
 }
+
+func new(rows, columns int) Puzzle {
+	puzzle := Puzzle{
+		Rows:            rows,
+		Columns:         columns,
+		Board:           make([][]Cell, rows),
+		RowTentCount:    make([]int, rows),
+		ColumnTentCount: make([]int, columns),
+	}
+
+	for i := range puzzle.Board {
+		puzzle.Board[i] = make([]Cell, columns)
+	}
+
+	return puzzle
+}

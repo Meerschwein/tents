@@ -39,8 +39,9 @@ func TestParseTestFiles(t *testing.T) {
 
 			assert.NotNil(t, puzzleData, "Missing puzzle in file %s", file.Name())
 			assert.NotNil(t, parsedPuzzleData, "Missing parsed puzzle in file %s", file.Name())
+			assert.NotNil(t, aspData, "Missing asp in file %s", file.Name())
 
-			acutalPuzzle, err := Parse(string(puzzleData))
+			acutalPuzzle, err := ParsePuzzle(string(puzzleData))
 			assert.NoError(t, err, "Parsing error in file %s", file.Name())
 
 			var expectedPuzzle Puzzle
@@ -49,7 +50,12 @@ func TestParseTestFiles(t *testing.T) {
 
 			assert.Equal(t, expectedPuzzle, acutalPuzzle, "Parsed puzzle does not match expected puzzle in file %s", file.Name())
 
-			assertEqualAsp(t, strings.Split(string(aspData), "\n"), acutalPuzzle.ToAspProgram())
+			aspLines := strings.Split(string(aspData), "\n")
+			assertEqualAsp(t, aspLines, acutalPuzzle.ToAspProgram())
+
+			actualAspPuzzle, err := ParseAsp(string(aspData))
+			assert.NoError(t, err, "Parsing error in file %s", file.Name())
+			assert.Equal(t, acutalPuzzle, actualAspPuzzle, "Parsed puzzle does not match expected puzzle in file %s", file.Name())
 		})
 	}
 }

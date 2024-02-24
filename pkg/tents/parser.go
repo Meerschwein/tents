@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func Parse(input string) (Puzzle, error) {
+func ParsePuzzle(input string) (Puzzle, error) {
 	lines := []string{}
 	for _, l := range strings.Split(input, "\n") { // remove empty lines
 		if l != "" {
@@ -81,20 +81,4 @@ func Parse(input string) (Puzzle, error) {
 	}
 
 	return puzzle, nil
-}
-
-func new(rows, columns int) Puzzle {
-	puzzle := Puzzle{
-		Rows:            rows,
-		Columns:         columns,
-		Board:           make([][]Cell, rows),
-		RowTentCount:    make([]int, rows),
-		ColumnTentCount: make([]int, columns),
-	}
-
-	for i := range puzzle.Board {
-		puzzle.Board[i] = make([]Cell, columns)
-	}
-
-	return puzzle
 }
