@@ -25,7 +25,7 @@ func (c Cell) String() string {
 	case Tree:
 		return "T"
 	case Tent:
-		return "^"
+		return "A"
 	}
 
 	panic("invalid cell")

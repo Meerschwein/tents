@@ -60,10 +60,10 @@ func ParsePuzzle(input string) (Puzzle, error) {
 				puzzle.Board[currRow][currCol] = Empty
 			case 'T':
 				puzzle.Board[currRow][currCol] = Tree
-			case '^':
+			case 'A':
 				puzzle.Board[currRow][currCol] = Tent
 			default:
-				return Puzzle{}, errors.New("board must contain only '.', 'T' and '^'")
+				return Puzzle{}, errors.New("board must contain only '.', 'T' and 'A'")
 			}
 		}
 	}
