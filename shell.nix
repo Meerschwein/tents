@@ -8,5 +8,7 @@ in
       go-tools
       gofumpt
       gopls
+
+      clingo
     ];
   }

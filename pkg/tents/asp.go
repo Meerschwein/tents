@@ -124,7 +124,7 @@ func ParseAsp(input string) (Puzzle, error) {
 
 func findFact(facts []string, name string) ([]int, error) {
 	for _, fact := range facts {
-		if strings.HasPrefix(fact, name) {
+		if strings.HasPrefix(fact, name+"(") {
 			argsStr := strings.TrimPrefix(fact, name+"(")
 			argsStr = strings.TrimSuffix(argsStr, ").")
 			args := strings.Split(argsStr, ",")
@@ -145,7 +145,7 @@ func findFact(facts []string, name string) ([]int, error) {
 func findFacts(facts []string, name string) ([][]int, error) {
 	found := [][]int{}
 	for _, fact := range facts {
-		if strings.HasPrefix(fact, name) {
+		if strings.HasPrefix(fact, name+"(") {
 			argsStr := strings.TrimPrefix(fact, name+"(")
 			argsStr = strings.TrimSuffix(argsStr, ").")
 			args := strings.Split(argsStr, ",")
