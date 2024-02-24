@@ -1,10 +1,10 @@
 module github.com/Meerschwein/tents
 
-go 1.21
+go 1.21.6
 
 require (
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/tools v0.17.0
+	golang.org/x/tools v0.18.0
 )
 
 require (

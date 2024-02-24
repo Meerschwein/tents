@@ -2,6 +2,7 @@ package tents
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -81,4 +82,24 @@ func ParsePuzzle(input string) (Puzzle, error) {
 	}
 
 	return puzzle, nil
+}
+
+func (p Puzzle) ToPuzzle() string {
+	s := fmt.Sprint(p.Rows, " ", p.Columns, "\n")
+
+	for i, rows := range p.Board {
+		for _, cell := range rows {
+			s += cell.String()
+		}
+		s += fmt.Sprint(" ", p.RowTentCount[i], "\n")
+	}
+
+	for i, count := range p.ColumnTentCount {
+		s += fmt.Sprint(count)
+		if i != len(p.ColumnTentCount)-1 { // not last column
+			s += " "
+		}
+	}
+
+	return s
 }

@@ -1,0 +1,568 @@
+============================
+= Answer Set Solver Output =
+============================
+
+Thomas Krennwallner <tkren at kr dot tuwien dot ac dot at>
+February 16, 2013
+Version 1.1
+
+ChangeLog:
+2013-02-16  Thomas Krennwallner  <tkren@kr.tuwien.ac.at>
+    * Specify Optimization n-o-c-Enumeration Problem for Program P.
+    * Add remark on optimization output for ASP Competition 2013.
+    * Add ToC.
+2013-02-01  Thomas Krennwallner  <tkren@kr.tuwien.ac.at>
+    * First release.
+
+
+The purpose of this document is to standardize the exit codes and the
+output of grounders and solvers for different computational problems
+associated with answer set programs.
+
+Solvers produce output using two channels: exit codes and standard
+output.  Exit codes are used primarly to distinguish succesful runs from
+unsuccesful ones; in case a run was successful, the exit code provides
+semantic information about the run.  On the other hand, standard output
+is used to report answer(s) to the given problem instance, e.g.,
+solutions to problems, enumerations thereof, etc.  Solvers may write
+warnings, statistics, debug and any additional information on stdout
+using comment lines.
+
+The same guideline applies to participant systems of the Answer Set
+Programming Competition Series.  For the ASP Competition 2013, the
+output specified in Sections 2.1, 2.2, 2.4 with n=0, 2.6, and 2.7 is
+relevant.
+
+
+
+*********************
+* Table of Contents *
+*********************
+
+ 1. Output Design Goals
+ 2. Output of an Answer Set Solver
+ 2.1. Computing the Grounding of Program P
+ 2.2. Search Problem for Program P
+ 2.3. Answer Set n-Enumeration Problem for Program P
+ 2.4. Optimization n-c-Enumeration Problem for Program P 
+ 2.5. Optimization n-o-c-Enumeration Problem for Program P 
+ 2.6. Ground Query Q w.r.t. Program P
+ 2.7. Nonground Query Q w.r.t. Program P
+ 2.8. Enumerating Brave or Cautious Consequences of a Program P
+ 3. Exit Code Bit Encoding
+
+
+
+**************************
+* 1. Output Design Goals *
+**************************
+
+The rationale for the output described in this document is to have a
+uniform way to represent the solutions for different problems related to
+ASP.  Output must be easily sent to other programs and designed such
+that the grep tool can efficiently get the (main) solution(s) without
+major detour.  For this purpose, we designed a line-oriented output
+format similar to cookie-jar or record-jar style (see also
+http://www.catb.org/esr/writings/taoup/html/ch05s02.html).
+
+Content is separated by delimiters. For instance, starting from the
+ANSWER delimiter, we get the content (and possibly the costs) of a
+solution by looking at the content appearing after a *fixed* line offset
+from this delimiter.  Solution enumeration can be formed using sequences
+of such ANSWERs.
+
+Important design goals are:
+
+1) delimiters in the output streams are all written in uppercase and are
+   single words without whitespace.  In the actual output, delimiters
+   must start in the first column.  A delimiter must not be a substring
+   of another delimiter;
+
+2) both answer sets and query substitutions/answers are represented as
+   program facts such that they can be shipped (without pre-processing)
+   to a possible following program in a solving pipeline;
+
+3) all output must be streamable, e.g., answer set solvers may dump
+   intermediate (non-optimal) solutions for an optimization problem.  In
+   this case, they should produce output that corresponds to exit code
+   10, but without terminating the process.  If the final optimum is
+   eventually found, they can then terminate with exit code 30 and print
+   the corresponding output sequence (see Section 3 for the exit code
+   description);
+
+4) comments start with the % sign.  They are not allowed to appear
+   within an output sequence out_i1, ..., out_ij.  They may appear
+   before or after a complete sequence has been printed.
+
+
+
+*************************************
+* 2. Output of an Answer Set Solver *
+*************************************
+
+This section presents the output of an answer set solver for various
+computational problems associated with answer set programs.
+
+We currently have the following delimiters that are used in the output:
+
+|--------------+-------------------------------------------------------------------------------|
+| Delimiter    | Meaning                                                                       |
+|--------------+-------------------------------------------------------------------------------|
+| ANSWER       | Solution found, next line(s) contains answer (+ costs)                        |
+|--------------+-------------------------------------------------------------------------------|
+| COST         | The cost of the solution in the previous line                                 |
+|--------------+-------------------------------------------------------------------------------|
+| INCONSISTENT | Program is inconsistent                                                       |
+|--------------+-------------------------------------------------------------------------------|
+| UNKNOWN      | No solution has been found yet                                                |
+|--------------+-------------------------------------------------------------------------------|
+| OPTIMUM      | The solution preceding and the solutions succeeding this delimiter are optima |
+|--------------+-------------------------------------------------------------------------------|
+| %            | The rest of the line is a uninterpreted comment                               |
+|--------------+-------------------------------------------------------------------------------|
+
+The output lines described below---each separated with a newline---must
+be present back to back.  That is, out_i must precede out_j for i < j,
+and no other output on stdout may appear between the two of them; see
+(4) in Section 1 above.  It is not allowed to print newlines or % within
+an output line; quoted strings may appear in an answer set, but they are
+only allowed to have escaped character such as \\n or \%.
+
+In the Line columns of the tables below, the rows out_1, out_4, and
+out_i1 (i = 1,...,m) must _start_ (i.e., at text column 0) with the
+shown uppercase string, but may have other (context-dependent) output
+following the string until the output ends with a newline.  The line
+named out_3 must _start_ with the string COST and followed by a space
+and the cost representation of the answer set.  Again, there may be
+context-dependent output after this sequence.
+
+Legenda
+-------
+
+n/a: not applicable
+
+Run interrupted? : grounder/solver terminates before the given
+                   computational problem has been fully computed (e.g.,
+                   reception of a signal like SIGINT, SIGKILL, SIGSEGV,
+                   or when the machine resources like maximum runtime,
+                   memory, or file size is exhausted)
+
+EC    : program exit code (see Section 3 for the encoding)
+out_i : output line i of an output sequence
+out_ij: output line j of the i-th output sequence
+
+A, A_i: answer set of a program
+T     : collection of substitutions satisfying a query
+
+Then, facts(A) gives fact representation of an answer set A, i.e., for A
+= {a_1, ..., a_n}, facts(A) is
+
+a_1. ... a_n.
+
+Likewise for facts(T), which gives for the collection of ground atoms T
+= {q(t_1), ..., q(t_n)} the facts
+
+q(t_1). ... q(t_n).
+
+The function opt(P,A) gives a space-separated sequence of cost@level
+pairs which represent the costs at the respective level of an answer set
+A w.r.t. program P:
+
+c1@l1 c2@l2 ...
+
+In the course of the ASP Competition 2013 we expect only cost values
+(without "@li").  For this reason, we assume that costs are ordered by
+level.
+
+The grounding output ground(P) of a program P is not specified, here
+either lparse or textual output may appear in consecutive output lines.
+
+Ground query answers are represented as the facts yes. and no.; for
+non-ground query substitutions, we represent the substitutions for a
+query Q as facts.
+
+
+
+---------------------------------------------
+- 2.1. Computing the Grounding of Program P -
+---------------------------------------------
+
+|------------------+--------------------------+-----+-----------|
+| Run interrupted? | P syntactically correct? |  EC | Output    |
+|------------------+--------------------------+-----+-----------|
+| no               | yes                      |   0 | ground(P) |
+|------------------+--------------------------+-----+-----------|
+| no               | no                       | 128 | n/a       |
+|------------------+--------------------------+-----+-----------|
+|------------------+--------------------------+-----+-----------|
+| yes              | yes                      |   1 | n/a       |
+|------------------+--------------------------+-----+-----------|
+
+
+
+-------------------------------------
+- 2.2. Search Problem for Program P -
+-------------------------------------
+
+|------------------+---------------+---------+----+-------+--------------|
+| Run interrupted? | P consistent? | answer? | EC | Line  | Output       |
+|------------------+---------------+---------+----+-------+--------------|
+| no               | yes           | A       | 10 | out_1 | ANSWER       |
+|                  |               |         |    | out_2 | facts(A)     |
+|------------------+---------------+---------+----+-------+--------------|
+| no               | no            | n/a     | 20 | out_1 | INCONSISTENT |
+|------------------+---------------+---------+----+-------+--------------|
+|------------------+---------------+---------+----+-------+--------------|
+| yes              | n/a           | n/a     |  1 | out_1 | UNKNOWN      |
+|------------------+---------------+---------+----+-------+--------------|
+
+(This is just a special case of n=1 enumeration problem.)
+
+
+
+-------------------------------------------------------
+- 2.3. Answer Set n-Enumeration Problem for Program P -
+-------------------------------------------------------
+
+|------------------+---------------+-----+--------------------+----+--------+--------------|
+| Run interrupted? | P consistent? | n   | answers?           | EC | Line   | Output       |
+|------------------+---------------+-----+--------------------+----+--------+--------------|
+| no               | yes           | > 0 | A_1, ..., A_n      | 10 | out_11 | ANSWER       |
+|                  |               |     |                    |    | out_12 | facts(A_1)   |
+|                  |               |     |                    |    |        | ...          |
+|                  |               |     |                    |    | out_n1 | ANSWER       |
+|                  |               |     |                    |    | out_n2 | facts(A_n)   |
+|------------------+---------------+-----+--------------------+----+--------+--------------|
+| no               | no            | â‰¥ 0 | n/a                | 20 | out_11 | INCONSISTENT |
+|------------------+---------------+-----+--------------------+----+--------+--------------|
+| no               | yes           | â‰¥ 0 | A_1, ..., A_m      | 30 | out_11 | ANSWER       |
+|                  |               |     | (n > 0: 0 < m < n) |    | out_12 | facts(A_1)   |
+|                  |               |     | (n = 0: m > n)     |    |        | ...          |
+|                  |               |     |                    |    | out_m1 | ANSWER       |
+|                  |               |     |                    |    | out_m2 | facts(A_m)   |
+|------------------+---------------+-----+--------------------+----+--------+--------------|
+|------------------+---------------+-----+--------------------+----+--------+--------------|
+| yes              | n/a           | â‰¥ 0 | n/a                |  1 | out_11 | UNKNOWN      |
+|------------------+---------------+-----+--------------------+----+--------+--------------|
+| yes              | yes           | â‰¥ 0 | A_1, ..., A_k, ... | 11 | out_11 | ANSWER       |
+|                  |               |     | (n > 0: k < n)     |    | out_12 | facts(A_1)   |
+|                  |               |     | (n = 0: k > n)     |    |        | ...          |
+|                  |               |     |                    |    | out_k1 | ANSWER       |
+|                  |               |     |                    |    | out_k2 | facts(A_k)   |
+|------------------+---------------+-----+--------------------+----+--------+--------------|
+
+
+
+-----------------------------------------------------------
+- 2.4. Optimization n-c-Enumeration Problem for Program P -
+-----------------------------------------------------------
+
+Requirements: opt(P,A_i) > opt(P,A_j) for i < j â‰¤ m.
+
+|------------------+---------------+-----+-----+--------------------+---------------+----+--------+-----------------|
+| Run interrupted? | P consistent? | n   | c   | answers?           | optimum <= c? | EC | Line   | Output          |
+|------------------+---------------+-----+-----+--------------------+---------------+----+--------+-----------------|
+| no               | yes           | > 0 | â‰¥ 0 | A_1, ..., A_n      | n/a           | 10 | out_11 | ANSWER          |
+|                  |               |     |     |                    |               |    | out_12 | facts(A_1)      |
+|                  |               |     |     |                    |               |    | out_13 | COST opt(P,A_1) |
+|                  |               |     |     |                    |               |    |        | ...             |
+|                  |               |     |     |                    |               |    | out_n1 | ANSWER          |
+|                  |               |     |     |                    |               |    | out_n2 | facts(A_n)      |
+|                  |               |     |     |                    |               |    | out_n3 | COST opt(P,A_n) |
+|------------------+---------------+-----+-----+--------------------+---------------+----+--------+-----------------|
+| no               | no            | â‰¥ 0 | â‰¥ 0 | n/a                | n/a           | 20 | out_11 | INCONSISTENT    |
+|------------------+---------------+-----+-----+--------------------+---------------+----+--------+-----------------|
+| no               | yes           | â‰¥ 0 | â‰¥ 0 | A_1, ..., A_m      | yes           | 30 | out_11 | ANSWER          |
+|                  |               |     |     | (n > 0: 0 < m < n) |               |    | out_12 | facts(A_1)      |
+|                  |               |     |     | (n = 0: m > n)     |               |    | out_13 | COST opt(P,A_1) |
+|                  |               |     |     |                    |               |    |        | ...             |
+|                  |               |     |     |                    |               |    | out_m1 | ANSWER          |
+|                  |               |     |     |                    |               |    | out_m2 | facts(A_m)      |
+|                  |               |     |     |                    |               |    | out_m3 | COST opt(P,A_m) |
+|                  |               |     |     |                    |               |    | out_m4 | OPTIMUM         |
+|------------------+---------------+-----+-----+--------------------+---------------+----+--------+-----------------|
+|------------------+---------------+-----+-----+--------------------+---------------+----+--------+-----------------|
+| yes              | n/a           | â‰¥ 0 | â‰¥ 0 | n/a                | n/a           |  1 | out_11 | UNKNOWN         |
+|------------------+---------------+-----+-----+--------------------+---------------+----+--------+-----------------|
+| yes              | yes           | â‰¥ 0 | â‰¥ 0 | A_1, ..., A_k, ... | n/a           | 11 | out_11 | ANSWER          |
+|                  |               |     |     | (n > 0: k < n)     |               |    | out_12 | facts(A_1)      |
+|                  |               |     |     | (n = 0: k > n)     |               |    | out_13 | COST opt(P,A_1) |
+|                  |               |     |     |                    |               |    |        | ...             |
+|                  |               |     |     |                    |               |    | out_k1 | ANSWER          |
+|                  |               |     |     |                    |               |    | out_k2 | facts(A_k)      |
+|                  |               |     |     |                    |               |    | out_k3 | COST opt(P,A_k) |
+|------------------+---------------+-----+-----+--------------------+---------------+----+--------+-----------------|
+
+(This is just a special case of o=1 Optimization n-o-c-Enumeration
+problem.)
+
+
+
+-------------------------------------------------------------
+- 2.5. Optimization n-o-c-Enumeration Problem for Program P -
+-------------------------------------------------------------
+
+Requirements: opt(P,A_i) > opt(P,A_j) for i < j â‰¤ m, and opt(P,A_i) =
+opt(P,A_j) for m â‰¤ i < j.
+
+|------------------+---------------+-----+-----+-----+---------------------------------------+------------------+----+-------------+---------------------|
+| Run interrupted? | P consistent? | n   | o   | c   | answers?                              | all optima <= c? | EC | Line        | Output              |
+|------------------+---------------+-----+-----+-----+---------------------------------------+------------------+----+-------------+---------------------|
+| no               | yes           | > 0 | â‰¥ 0 | â‰¥ 0 | A_1, ..., A_n                         | n/a              | 10 | out_11      | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_12      | facts(A_1)          |
+|                  |               |     |     |     |                                       |                  |    | out_13      | COST opt(P,A_1)     |
+|                  |               |     |     |     |                                       |                  |    |             | ...                 |
+|                  |               |     |     |     |                                       |                  |    | out_n1      | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_n2      | facts(A_n)          |
+|                  |               |     |     |     |                                       |                  |    | out_n3      | COST opt(P,A_n)     |
+|------------------+---------------+-----+-----+-----+---------------------------------------+------------------+----+-------------+---------------------|
+| no               | no            | â‰¥ 0 | â‰¥ 0 | â‰¥ 0 | n/a                                   | n/a              | 20 | out_11      | INCONSISTENT        |
+|------------------+---------------+-----+-----+-----+---------------------------------------+------------------+----+-------------+---------------------|
+| no               | yes           | > 0 | > 0 | â‰¥ 0 | A_1, ..., A_m, A_m+1, ..., A_m+o-1    | n/a              | 30 | out_11      | ANSWER              |
+|                  |               |     |     |     | (m + o - 1 < n)                       |                  |    | out_12      | facts(A_1)          |
+|                  |               |     |     |     |                                       |                  |    | out_13      | COST opt(P,A_1)     |
+|                  |               |     |     |     |                                       |                  |    |             | ...                 |
+|                  |               |     |     |     |                                       |                  |    | out_m1      | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_m2      | facts(A_m)          |
+|                  |               |     |     |     |                                       |                  |    | out_m3      | COST opt(P,A_m)     |
+|                  |               |     |     |     |                                       |                  |    | out_m4      | OPTIMUM             |
+|                  |               |     |     |     |                                       |                  |    | out_m+1,1   | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_m+1,2   | facts(A_m+1)        |
+|                  |               |     |     |     |                                       |                  |    | out_m+1,3   | COST opt(P,A_m+1)   |
+|                  |               |     |     |     |                                       |                  |    |             | ...                 |
+|                  |               |     |     |     |                                       |                  |    | out_m+o-1,1 | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_m+o-1,2 | facts(A_m+o-1)      |
+|                  |               |     |     |     |                                       |                  |    | out_m+o-1,3 | COST opt(P,A_m+o-1) |
+|------------------+---------------+-----+-----+-----+---------------------------------------+------------------+----+-------------+---------------------|
+| no               | yes           | â‰¥ 0 | â‰¥ 0 | â‰¥ 0 | A_1, ..., A_m, A_m+1, ..., A_m+k      | yes              | 62 | out_11      | ANSWER              |
+|                  |               |     |     |     | (n,o > 0: 0 < m + k < o - 1 â‰¤ n)      |                  |    | out_12      | facts(A_1)          |
+|                  |               |     |     |     | (n > 0, o = 0: m + k < n)             |                  |    | out_13      | COST opt(P,A_1)     |
+|                  |               |     |     |     | (n = 0, o = 0: m + k > n)             |                  |    |             | ...                 |
+|                  |               |     |     |     |                                       |                  |    | out_m1      | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_m2      | facts(A_m)          |
+|                  |               |     |     |     |                                       |                  |    | out_m3      | COST opt(P,A_m)     |
+|                  |               |     |     |     |                                       |                  |    | out_m4      | OPTIMUM             |
+|                  |               |     |     |     |                                       |                  |    | out_m+1,1   | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_m+1,2   | facts(A_m+1)        |
+|                  |               |     |     |     |                                       |                  |    | out_m+1,3   | COST opt(P,A_m+1)   |
+|                  |               |     |     |     |                                       |                  |    |             | ...                 |
+|                  |               |     |     |     |                                       |                  |    | out_m+k,1   | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_m+k,2   | facts(A_m+k)        |
+|                  |               |     |     |     |                                       |                  |    | out_m+k,3   | COST opt(P,A_m+k)   |
+|------------------+---------------+-----+-----+-----+---------------------------------------+------------------+----+-------------+---------------------|
+|------------------+---------------+-----+-----+-----+---------------------------------------+------------------+----+-------------+---------------------|
+| yes              | n/a           | â‰¥ 0 | â‰¥ 0 | â‰¥ 0 | n/a                                   | n/a              |  1 | out_11      | UNKNOWN             |
+|------------------+---------------+-----+-----+-----+---------------------------------------+------------------+----+-------------+---------------------|
+| yes              | yes           | â‰¥ 0 | â‰¥ 0 | â‰¥ 0 | A_1, ..., A_k, ...                    | n/a              | 11 | out_11      | ANSWER              |
+|                  |               |     |     |     | (n > 0: k < n)                        |                  |    | out_12      | facts(A_1)          |
+|                  |               |     |     |     | (n = 0: k > n)                        |                  |    | out_13      | COST opt(P,A_1)     |
+|                  |               |     |     |     |                                       |                  |    |             | ...                 |
+|                  |               |     |     |     |                                       |                  |    | out_k1      | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_k2      | facts(A_k)          |
+|                  |               |     |     |     |                                       |                  |    | out_k3      | COST opt(P,A_k)     |
+|------------------+---------------+-----+-----+-----+---------------------------------------+------------------+----+-------------+---------------------|
+| yes              | yes           | â‰¥ 0 | â‰¥ 0 | â‰¥ 0 | A_1, ..., A_m, A_m+1, ..., A_m+k, ... | n/a              | 31 | out_11      | ANSWER              |
+|                  |               |     |     |     | (n,o > 0: 0 < m + k < o - 1 â‰¤ n)      |                  |    | out_12      | facts(A_1)          |
+|                  |               |     |     |     | (n > 0, o = 0: m + k < n)             |                  |    | out_13      | COST opt(P,A_1)     |
+|                  |               |     |     |     | (n = 0, o = 0: m + k > n)             |                  |    |             | ...                 |
+|                  |               |     |     |     |                                       |                  |    | out_m1      | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_m2      | facts(A_m)          |
+|                  |               |     |     |     |                                       |                  |    | out_m3      | COST opt(P,A_m)     |
+|                  |               |     |     |     |                                       |                  |    | out_m4      | OPTIMUM             |
+|                  |               |     |     |     |                                       |                  |    | out_m+1,1   | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_m+1,2   | facts(A_m+1)        |
+|                  |               |     |     |     |                                       |                  |    | out_m+1,3   | COST opt(P,A_m+1)   |
+|                  |               |     |     |     |                                       |                  |    |             | ...                 |
+|                  |               |     |     |     |                                       |                  |    | out_m+k,1   | ANSWER              |
+|                  |               |     |     |     |                                       |                  |    | out_m+k,2   | facts(A_m+k)        |
+|                  |               |     |     |     |                                       |                  |    | out_m+k,3   | COST opt(P,A_m+k)   |
+|------------------+---------------+-----+-----+-----+---------------------------------------+------------------+----+-------------+---------------------|
+
+
+
+----------------------------------------
+- 2.6. Ground Query Q w.r.t. Program P -
+----------------------------------------
+
+|------------------+--------+----+-------+---------|
+| Run interrupted? | P |= Q | EC | Line  | Output  |
+|------------------+--------+----+-------+---------|
+| no               | true   | 10 | out_1 | ANSWER  |
+|                  |        |    | out_2 | yes.    |
+|------------------+--------+----+-------+---------|
+| no               | false  | 20 | out_1 | ANSWER  |
+|                  |        |    | out_2 | no.     |
+|------------------+--------+----+-------+---------|
+|------------------+--------+----+-------+---------|
+| yes              | n/a    |  1 | out_1 | UNKNOWN |
+|------------------+--------+----+-------+---------|
+
+Brave and cautious query answering gives the same output, the user
+decides upfront which query service is being instantiated.
+
+
+
+-------------------------------------------
+- 2.7. Nonground Query Q w.r.t. Program P -
+-------------------------------------------
+
+|------------------+---------------+--------+----+-------+--------------|
+| Run interrupted? | P consistent? | P |= Q | EC | Line  | out_1        |
+|------------------+---------------+--------+----+-------+--------------|
+| no               | yes           | T      | 10 | out_1 | ANSWER       |
+|                  |               |        |    | out_2 | facts(T)     |
+|------------------+---------------+--------+----+-------+--------------|
+| no               | no            | n/a    | 20 | out_1 | INCONSISTENT |
+|------------------+---------------+--------+----+-------+--------------|
+|------------------+---------------+--------+----+-------+--------------|
+| yes              | n/a           | n/a    |  1 | out_1 | UNKNOWN      |
+|------------------+---------------+--------+----+-------+--------------|
+
+If T=0, facts(T) in out_2 corresponds to a newline ('\n').
+
+
+
+------------------------------------------------------------------
+- 2.8. Enumerating Brave or Cautious Consequences of a Program P -
+------------------------------------------------------------------
+
+|------------------+---------------+-----+----------------------------+----+--------+----------------|
+| Run interrupted? | P consistent? | n   | Enumerated consequences    | EC | Line   | Output         |
+|------------------+---------------+-----+----------------------------+----+--------+----------------|
+| no               | yes           | > 0 | Cn_1(P), ..., Cn_n(P)      | 10 | out_11 | ANSWER         |
+|                  |               |     |                            |    | out_12 | facts(Cn_1(P)) |
+|                  |               |     |                            |    |        | ...            |
+|                  |               |     |                            |    | out_n1 | ANSWER         |
+|                  |               |     |                            |    | out_n2 | facts(Cn_n(P)) |
+|------------------+---------------+-----+----------------------------+----+--------+----------------|
+| no               | no            | â‰¥ 0 | n/a                        | 20 | out_11 | INCONSISTENT   |
+|------------------+---------------+-----+----------------------------+----+--------+----------------|
+| no               | yes           | â‰¥ 0 | Cn_1(P), ..., Cn_m(P)      | 30 | out_11 | ANSWER         |
+|                  |               |     | (n > 0: 0 < m < n)         |    | out_12 | facts(Cn_1(P)) |
+|                  |               |     | (n = 0: m > n)             |    |        | ...            |
+|                  |               |     |                            |    | out_m1 | ANSWER         |
+|                  |               |     |                            |    | out_m2 | facts(Cn_m(P)) |
+|------------------+---------------+-----+----------------------------+----+--------+----------------|
+|------------------+---------------+-----+----------------------------+----+--------+----------------|
+| yes              | n/a           | â‰¥ 0 | n/a                        |  1 | out_11 | UNKNOWN        |
+|------------------+---------------+-----+----------------------------+----+--------+----------------|
+| yes              | yes           | â‰¥ 0 | Cn_1(P), ..., Cn_k(P), ... | 11 | out_11 | ANSWER         |
+|                  |               |     | (n > 0: k < n)             |    | out_12 | facts(Cn_1(P)) |
+|                  |               |     | (n = 0: k > n)             |    |        | ...            |
+|                  |               |     |                            |    | out_k1 | ANSWER         |
+|                  |               |     |                            |    | out_k2 | facts(Cn_k(P)) |
+|------------------+---------------+-----+----------------------------+----+--------+----------------|
+
+
+
+*****************************
+* 3. Exit Code Bit Encoding *
+*****************************
+
+Each exit code represents a possibly successful run of a
+solver/grounder: based on the exit status, the end user should be able
+to answer decision problems without parsing the output, or decide
+whether something went wrong or no solution could be found.
+
+Exit codes must fit within the lowest 8 bits of an integer.  In order to
+keep compatibility with SAT/QBF solvers, we use the status values 10 and
+20 to encode satisfiable and unsatisfiable instances, respectively.
+This gives the following bit patterns for satisfiable and unsatisfiable
+runs: 00001010 resp. 00010100.  Furthermore, SAT/QBF solvers may exit
+without a known solution (e.g., when they have hit the time/memory
+limit), but their exit status do not agree with these kind of runs.
+
+As ASP solvers usually implement many different computational problems,
+three exit codes are not enough to give us all information on the exit
+status of a solver.  For this reason, we use the following bit scheme to
+encode the status of a ground/solver run.
+
+|-------+-------+--------+---------+-------+---------+-------+-------|
+| bit 7 | bit 6 | bit 5  | bit 4   | bit 3 | bit 2   | bit 1 | bit 0 |
+|-------+-------+--------+---------+-------+---------+-------+-------|
+| NORUN | RES   | ALLOPT | EXHAUST | SAT   | EXHAUST | SAT   | INT   |
+|-------+-------+--------+---------+-------+---------+-------+-------|
+
+The top row of the table denote the position of the bit in a char, and
+the bottom row shows the name of the bit.
+
+The highest bit NORUN is used to signal whenever the grounder/solver did
+not start the computation.  There could be several reasons, most likely
+whenever the input instance is syntactically unsupported, there is a
+syntax error, or a command line argument is not known or conflicts with
+another one.  Hence, exit code 128 must be used whenever the
+grounder/solver process quits without starting the computation.  The
+NORUN bit is mutually exclusive with all other bits.
+
+The lowest bit INT encodes that the grounder/solver was being terminated
+by the environment (i.e., received a signal) without completing the
+computation to the given problem.  This bit must be set in the exit code
+of runs where the grounder/solver gets a signal from the environment, or
+when computational resources like time or memory are exhausted.  Thus,
+exit status 1 is used in runs, where no (complete) solution is known or
+where the grounding had been interrupted.  When the solver has been
+interrupted during an enumeration task and after enumerating some
+models, the exit code will have this bit set to true; those runs
+correspond to exit code 11 or 31, depending whether some optimum has
+been found.
+
+The other bits---RES, ALLOPT, EXHAUST, and SAT---are used for solver
+runs that found some solutions to a given problem.  Grounders do not
+touch these bits, thus successful grounding runs have exit code 0, which
+is important for grounding/solving pipelines.  Setting the SAT bit
+encodes that the solver found at least one solution.  The EXHAUST flag
+is used to signal that the solver exhaustively went through the search
+space.  For instance, inconsistent instances have bit EXHAUST and bit
+SAT set to 1 and 0, resp.: this corresponds to an exit status with
+value 20.  The ALLOPT flag signals that all optimal solutions have been
+found.  Bit RES is not specified here, it is reserved for future use,
+and must be set to 0 whenever INT is 0.  For instance, implementors may
+use it to encode further status information for interrupted runs.  The
+specified exit codes in this document can be always retrieved from such
+exit codes with a bitmask of 0xbf.
+
+We currently have the following exit codes:
+
+|-----------+-------------------------------------------------------------------------------------------|
+| Exit code | Meaning                                                                                   |
+|-----------+-------------------------------------------------------------------------------------------|
+|         1 | Run interrupted: No solution has been found so far                                        |
+|-----------+-------------------------------------------------------------------------------------------|
+|        10 | Program is consistent / some consequences exist / query is true                           |
+|-----------+-------------------------------------------------------------------------------------------|
+|        11 | Run interrupted: Program is consistent / some consequences exist                          |
+|-----------+-------------------------------------------------------------------------------------------|
+|        20 | Program is inconsistent / query is false                                                  |
+|-----------+-------------------------------------------------------------------------------------------|
+|        30 | Program is consistent, all possible solutions/consequences enumerated / some optima found |
+|-----------+-------------------------------------------------------------------------------------------|
+|        31 | Run interrupted: Program is consistent / some optima found                                |
+|-----------+-------------------------------------------------------------------------------------------|
+|        62 | Program is consistent / all possible optima found                                         |
+|-----------+-------------------------------------------------------------------------------------------|
+|       128 | Syntax error / command line arguments error                                               |
+|-----------+-------------------------------------------------------------------------------------------|
+
+The following table summarises the expected behaviour of a solver when
+interrupted by one of the following (standard) termination signals:
+
+|-------------+------------------+---------------------------------+-------------|
+| Reason      | Default action   | Expected action                 | Description |
+|-------------+------------------+---------------------------------+-------------|
+| SIGHUP (1)  | exit(129)        | exit(1) or exit(11) or exit(31) | kill -HUP   |
+| SIGINT (2)  | exit(130)        | exit(1) or exit(11) or exit(31) | Ctrl-C      |
+| SIGQUIT (3) | exit(131) + core | exit(1) or exit(11) or exit(31) | Ctrl-\      |
+|-------------+------------------+---------------------------------+-------------|
+
+Further signals are relevant in the context of the ASP Competition 2013.
+Here, different signals encode the reason for solver termination.
+
+|--------------+------------------+---------------------------------+-----------------------------------------------------|
+| Reason       | Default action   | Expected action                 | Description                                         |
+|--------------+------------------+---------------------------------+-----------------------------------------------------|
+| SIGKILL (9)  | exit(137)        | cannot be changed               | sent when process(es) continue to run after timeout |
+| SIGSEGV (11) | exit(139)        | exit(1) or exit(11) or exit(31) | sent when memout is reached, or programming error   |
+| SIGTERM (15) | exit(143)        | exit(1) or exit(11) or exit(31) | sent at most 10 secs after timeout                  |
+| SIGXCPU (24) | exit(152) + core | exit(1) or exit(11) or exit(31) | sent when timeout is reached                        |
+| SIGXFSZ (25) | exit(153) + core | exit(1) or exit(11) or exit(31) | sent when max filesize is reached                   |
+|--------------+------------------+---------------------------------+-----------------------------------------------------|

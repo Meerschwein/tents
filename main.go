@@ -5,15 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
-	"runtime"
 	"strings"
 
+	"github.com/Meerschwein/tents/pkg/asp"
+	"github.com/Meerschwein/tents/pkg/clingo"
 	"github.com/Meerschwein/tents/pkg/tents"
 )
-
-//go:embed tents.asp
-var tentsAsp string
 
 func main() {
 	flag.Parse()
@@ -35,40 +32,29 @@ func main() {
 		panic(err)
 	}
 
-	all := tentsAsp + strings.Join(p.ToAspProgram(), "\n")
+	println(string(puzzleFileContent) + "\n")
 
-	println(string(puzzleFileContent))
-
-	// call clingo
-	c := exec.Command("clingo", "--outf=1", "-t", fmt.Sprint(runtime.NumCPU()))
-	c.Stdin = strings.NewReader(all)
-
-	out, err := c.CombinedOutput()
-	if err != nil &&
-		c.ProcessState.ExitCode() != 30 &&
-		c.ProcessState.ExitCode() != 10 {
-		println(string(out))
-		panic(err)
-	}
-	println(string(out))
-
-	lines := strings.Split(string(out), "\n")
-	// remove all lines with the % prefix
-	var result []string
-	for _, line := range lines {
-		if !strings.HasPrefix(line, "%") && line != "" && line != "ANSWER" {
-			result = append(result, line)
-		}
-	}
-	if len(result) != 1 {
-		println("i dont know what to do")
-		os.Exit(1)
+	all := asp.TentsSolution
+	for _, p := range p.ToAsp() {
+		all += p.String() + "\n"
 	}
 
-	p, err = tents.ParseAsp(strings.Join(strings.Split(result[0], " "), "\n"))
+	cr, err := clingo.Run(strings.NewReader(all))
 	if err != nil {
 		panic(err)
 	}
 
-	println(p.String())
+	// fmt.Printf("%+v", cr)
+
+	if !cr.GoodExitCode() {
+		fmt.Println(cr.ExitCode)
+		return
+	}
+
+	p, err = tents.ParseAsp(cr.Predicates)
+	if err != nil {
+		panic(err)
+	}
+
+	println(p.ToPuzzle())
 }
