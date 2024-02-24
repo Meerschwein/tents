@@ -28,5 +28,9 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(puzzle)
+	aspProgram := puzzle.ToAspProgram()
+
+	for _, fact := range aspProgram {
+		fmt.Println(fact)
+	}
 }

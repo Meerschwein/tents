@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,13 +25,15 @@ func TestParseTestFiles(t *testing.T) {
 
 			archive := txtar.Parse(content)
 
-			var puzzleData, parsedPuzzleData []byte
+			var puzzleData, parsedPuzzleData, aspData []byte
 
 			for _, f := range archive.Files {
 				if f.Name == "puzzle" {
 					puzzleData = f.Data
 				} else if f.Name == "parsed" {
 					parsedPuzzleData = f.Data
+				} else if f.Name == "asp" {
+					aspData = f.Data
 				}
 			}
 
@@ -44,6 +48,31 @@ func TestParseTestFiles(t *testing.T) {
 			assert.NoError(t, err, "Failed to unmarshal expected puzzle in file %s", file.Name())
 
 			assert.Equal(t, expectedPuzzle, acutalPuzzle, "Parsed puzzle does not match expected puzzle in file %s", file.Name())
+
+			assertEqualAsp(t, strings.Split(string(aspData), "\n"), acutalPuzzle.ToAspProgram())
 		})
 	}
+}
+
+func assertEqualAsp(t *testing.T, expected, actual []string) {
+	// remove all whitespace and sort then compare
+	var expectedCleaned, actualCleaned []string
+	for i := range expected {
+		clean := strings.TrimSpace(expected[i])
+		if clean != "" {
+			expectedCleaned = append(expectedCleaned, clean)
+		}
+	}
+
+	for i := range actual {
+		clean := strings.TrimSpace(actual[i])
+		if clean != "" {
+			actualCleaned = append(actualCleaned, clean)
+		}
+	}
+
+	sort.Strings(expectedCleaned)
+	sort.Strings(actualCleaned)
+
+	assert.ElementsMatch(t, expectedCleaned, actualCleaned)
 }
