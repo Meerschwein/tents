@@ -1,0 +1,21 @@
+I am unsure whether this puzzle is ok or not
+
+Rule on moodle:
+Place tents on the grid, so that each tree has a unique horizontally or
+vertically adjacent tent. This also means that no tent can "serve" more than one tree.
+
+It seems like one could interpret this to mean that each tree must have exactly one tent
+or at least one unique tent.
+
+
+-- puzzle --
+
+3 1
+. 1
+T 0
+. 1
+2
+
+-- solution --
+
+INCONSISTENT

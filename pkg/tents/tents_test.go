@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/Meerschwein/tents/pkg/asp"
+	"github.com/Meerschwein/tents/pkg/asp/solution"
 	"github.com/Meerschwein/tents/pkg/clingo"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/tools/txtar"
@@ -20,7 +22,9 @@ func TestParseTestFiles(t *testing.T) {
 	assert.NoError(t, err, "Failed to read testdata directory")
 
 	for _, file := range files {
+		file := file
 		t.Run(file.Name(), func(t *testing.T) {
+			t.Parallel()
 			content, err := os.ReadFile(filepath.Join(testdataPath, file.Name()))
 			assert.NoError(t, err, "Failed to read file %s", file.Name())
 
@@ -74,19 +78,45 @@ func aspPuzzleTest(t *testing.T, p Puzzle, aspData []byte) {
 }
 
 func solutionTest(t *testing.T, p Puzzle, solutionData []byte) {
-	program := asp.CoiceSolution
+	pstr := ""
 	for _, p := range p.ToAsp() {
-		program += p.String()
+		pstr += p.String()
 	}
 
-	cr, err := clingo.Run(strings.NewReader(program))
-	assert.NoError(t, err)
-	assert.True(t, cr.GoodExitCode())
+	for name, program := range solution.Solutions {
+		t.Run(name, func(t *testing.T) {
+			program += pstr
+			cr, err := clingo.Run(strings.NewReader(program))
+			assert.NoError(t, err)
 
-	pa, err := ParseAsp(cr.Predicates)
-	assert.NoError(t, err)
+			if strings.TrimSpace(string(solutionData)) == "INCONSISTENT" {
+				assert.Equal(t, "INCONSISTENT", cr.Delimiter)
+				if cr.Delimiter == "ANSWER" {
+					p, err := ParseAsp(cr.Predicates)
+					assert.NoError(t, err)
+					t.Log("\n",p.ToPuzzle())
+				}
+				assert.Equal(t, clingo.QueryIsFalse.Error(), cr.ExitCode.Error())
+				return
+			}
 
-	pe, err := ParsePuzzle(string(solutionData))
-	assert.NoError(t, err)
-	assert.Equal(t, pe, pa)
+			assert.True(t, cr.GoodExitCode(), cr.ExitCode)
+			assert.Equal(t, "ANSWER", cr.Delimiter)
+
+			pa, err := ParseAsp(cr.Predicates)
+			assert.NoError(t, err)
+
+			pe, err := ParsePuzzle(string(solutionData))
+			assert.NoError(t, err)
+			assertPuzzleEqual(t, pe, pa)
+		})
+	}
+}
+
+func assertPuzzleEqual(t *testing.T, expected, actual Puzzle) {
+	t.Helper()
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected\n%v\nGot\n%v", expected.ToPuzzle(), actual.ToPuzzle())
+	}
 }

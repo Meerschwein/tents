@@ -1,0 +1,27 @@
+-- puzzle --
+
+2 2
+.T 0
+T. 1
+0 1
+
+-- solution --
+
+INCONSISTENT
+
+-- asp --
+
+lines(2).
+columns(2).
+free(1,1).
+tree(1,2).
+tree(2,1).
+free(2,2).
+line(1).
+rowsum(1,0).
+line(2).
+rowsum(2,1).
+column(1).
+colsum(1,0).
+column(2).
+colsum(2,1).

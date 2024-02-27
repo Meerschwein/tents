@@ -1,0 +1,10 @@
+-- puzzle --
+
+2 3
+..T 1
+T.. 1
+0 2 0
+
+-- solution --
+
+INCONSISTENT

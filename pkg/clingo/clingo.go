@@ -82,10 +82,6 @@ func Run(stdin io.Reader) (ClingoResult, error) {
 
 	cr.ExitCode = ExitCode(c.ProcessState.ExitCode())
 
-	if !cr.GoodExitCode() {
-		return cr, nil
-	}
-
 	out := []string{}
 	for _, line := range strings.Split(cr.Out.String(), "\n") {
 		if util.IsBlank(line) || strings.HasPrefix(line, "%") {
@@ -99,10 +95,12 @@ func Run(stdin io.Reader) (ClingoResult, error) {
 		}
 		out = append(out, line)
 	}
+	if !cr.GoodExitCode() {
+		return cr, nil
+	}
 	if len(out) == 0 {
 		return ClingoResult{}, fmt.Errorf("no output")
 	}
-
 	preds, err := asp.ParsePredicates(strings.Split(out[0], " "))
 	if err != nil {
 		return ClingoResult{}, err
