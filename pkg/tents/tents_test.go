@@ -94,7 +94,7 @@ func solutionTest(t *testing.T, p Puzzle, solutionData []byte) {
 				if cr.Delimiter == "ANSWER" {
 					p, err := ParseAsp(cr.Predicates)
 					assert.NoError(t, err)
-					t.Log("\n",p.ToPuzzle())
+					t.Log("\n", p.ToPuzzle())
 				}
 				assert.Equal(t, clingo.QueryIsFalse.Error(), cr.ExitCode.Error())
 				return

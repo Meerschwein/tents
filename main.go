@@ -1,8 +1,6 @@
 package main
 
 import (
-	_ "embed"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -12,102 +10,121 @@ import (
 	"github.com/Meerschwein/tents/pkg/asp/solution"
 	"github.com/Meerschwein/tents/pkg/clingo"
 	"github.com/Meerschwein/tents/pkg/tents"
-	"golang.org/x/tools/txtar"
+	"github.com/alexflint/go-arg"
 )
 
-var (
-	mode         = flag.String("mode", "puzzle", "format of the input file (puzzle | asp)\npuzzle: tents puzzle\nasp: asp encoding of a tents puzzle")
-	solutionType = flag.String("solution", "choices", "solution type (choices | disjunction)")
-	puzzleFrom   io.Reader
-)
+type Args struct {
+	InFormat  string `arg:"-f" default:"puzzle"  help:"puzzle | asp"`
+	OutFormat string `arg:"-o" default:"puzzle"  help:"puzzle | asp"`
+	Solution  string `arg:"-s" default:"choices" help:"choices | disjunction | negation"`
+	File      string `arg:"positional"           help:"stdin if not given"`
+}
 
 func init() {
-	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [flags] <file>\n", os.Args[0])
-		fmt.Fprintln(flag.CommandLine.Output(), "If no file is given the input is read from stdin.")
-		flag.PrintDefaults()
-	}
-	flag.Parse()
+	args := Args{}
 
-	if *mode != "puzzle" && *mode != "asp" && *mode != "txtar" {
-		flag.Usage()
-		os.Exit(1)
+	{
+		parser := arg.MustParse(&args)
+
+		switch args.InFormat {
+		case "puzzle", "asp":
+		default:
+			fmt.Println("Invalid informat:", args.InFormat)
+			parser.WriteHelp(os.Stdout)
+			os.Exit(1)
+		}
+
+		switch args.OutFormat {
+		case "puzzle", "asp":
+		default:
+			fmt.Println("Invalid outformat:", args.OutFormat)
+			parser.WriteHelp(os.Stdout)
+			os.Exit(1)
+		}
+
+		switch args.Solution {
+		case "choices", "disjunction", "negation":
+		default:
+			fmt.Println("Invalid solution:", args.Solution)
+			parser.WriteHelp(os.Stdout)
+			os.Exit(1)
+		}
 	}
 
-	if *solutionType != "choices" && *solutionType != "disjunction" {
-		flag.Usage()
-		os.Exit(1)
-	}
+	var puzzleData []byte
+	var err error
 
-	switch flag.NArg() {
-	case 0:
-		puzzleFrom = os.Stdin
-	case 1:
-		var err error
-		puzzleFrom, err = os.Open(flag.Arg(0))
+	switch args.File {
+	case "":
+		puzzleData, err = io.ReadAll(os.Stdin)
 		if err != nil {
 			panic(err)
 		}
 	default:
-		flag.Usage()
-		os.Exit(1)
-	}
-}
-
-func main() {
-	puzzleData, err := io.ReadAll(puzzleFrom)
-	if err != nil {
-		panic(err)
-	}
-	switch puzzleFrom := puzzleFrom.(type) {
-	case io.Closer:
-		puzzleFrom.Close()
-	}
-
-	var p tents.Puzzle
-	if *mode == "puzzle" {
-		p, err = tents.ParsePuzzle(string(puzzleData))
-	} else if *mode == "asp" {
-		preds, err2 := asp.ParsePredicates(strings.Split(string(puzzleData), "\n"))
-		if err2 != nil {
+		f, err := os.Open(args.File)
+		if err != nil {
 			panic(err)
 		}
-		p, err = tents.ParseAsp(preds)
-	} else if *mode == "txtar" {
-		ar := txtar.Parse(puzzleData)
-		for _, f := range ar.Files {
-			if f.Name == "puzzle" {
-				p, err = tents.ParsePuzzle(string(f.Data))
-				goto found
-			}
+		puzzleData, err = io.ReadAll(f)
+		if err != nil {
+			panic(err)
 		}
-		panic("no puzzle found in txtar")
-	found:
-	}
-	if err != nil {
-		panic(err)
+		f.Close()
 	}
 
-	all := solution.Solutions[*solutionType]
-	for _, p := range p.ToAsp() {
-		println(p.String())
-		all += p.String() + "\n"
+	switch args.InFormat {
+	case "puzzle":
+		puzzle, err = tents.ParsePuzzle(string(puzzleData))
+		if err != nil {
+			panic(err)
+		}
+	case "asp":
+		preds, err := asp.ParsePredicates(strings.Split(string(puzzleData), "\n"))
+		if err != nil {
+			panic(err)
+		}
+		puzzle, err = tents.ParseAsp(preds)
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	cr, err := clingo.Run(strings.NewReader(all))
+	program = solution.Solutions[args.Solution]
+	outformat = args.OutFormat
+}
+
+var (
+	puzzle    tents.Puzzle
+	outformat string
+	program   string
+)
+
+func main() {
+	for _, p := range puzzle.ToAsp() {
+		program += p.String() + "\n"
+	}
+
+	cr, err := clingo.Run(strings.NewReader(program))
 	if err != nil {
 		panic(err)
 	}
 
 	if !cr.GoodExitCode() {
 		fmt.Println(cr.ExitCode)
-		return
+		os.Exit(1)
 	}
 
-	p, err = tents.ParseAsp(cr.Predicates)
+	puzzle, err = tents.ParseAsp(cr.Predicates)
 	if err != nil {
 		panic(err)
 	}
 
-	println(p.ToPuzzle())
+	switch outformat {
+	case "puzzle":
+		fmt.Println(puzzle.ToPuzzle())
+	case "asp":
+		for _, p := range puzzle.ToAsp() {
+			fmt.Println(p.String())
+		}
+	}
 }

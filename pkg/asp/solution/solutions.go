@@ -4,7 +4,7 @@ import _ "embed"
 
 var Solutions = map[string]string{
 	// newlines so that line comments dont accidentally comment out the first line
-	"choice":      "\n" + choice + "\n",
+	"choices":     "\n" + choice + "\n",
 	"disjunction": "\n" + disjunction + "\n",
 	"negation":    "\n" + negation + "\n",
 }
