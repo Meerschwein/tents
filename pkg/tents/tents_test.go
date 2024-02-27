@@ -74,7 +74,7 @@ func aspPuzzleTest(t *testing.T, p Puzzle, aspData []byte) {
 }
 
 func solutionTest(t *testing.T, p Puzzle, solutionData []byte) {
-	program := asp.TentsSolution
+	program := asp.CoiceSolution
 	for _, p := range p.ToAsp() {
 		program += p.String()
 	}

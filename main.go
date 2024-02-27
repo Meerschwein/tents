@@ -34,7 +34,7 @@ func main() {
 
 	println(string(puzzleFileContent) + "\n")
 
-	all := asp.TentsSolution
+	all := asp.CoiceSolution
 	for _, p := range p.ToAsp() {
 		all += p.String() + "\n"
 	}
