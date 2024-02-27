@@ -1,0 +1,17 @@
+
+from
+https://codegolf.stackexchange.com/questions/206786/verify-tents-and-trees-solution
+
+-- puzzle --
+
+
+
+3 3
+A T A 2
+T T . 0
+A T A 2
+2 0 2
+
+-- solution --
+
+INCONSISTENT

@@ -14,11 +14,12 @@ import (
 )
 
 type Args struct {
-	InFormat  string `arg:"-f" default:"puzzle"  help:"puzzle | asp"`
-	OutFormat string `arg:"-o" default:"puzzle"  help:"puzzle | asp"`
-	Solution  string `arg:"-s" default:"choices" help:"choices | disjunction | negation"`
-	NoSolve   bool   `arg:"-n" default:"false"   help:"don't solve the puzzle"`
-	File      string `arg:"positional"           help:"stdin if not given"`
+	InFormat    string `arg:"-f" default:"puzzle"  help:"puzzle | asp"`
+	OutFormat   string `arg:"-o" default:"puzzle"  help:"puzzle | asp"`
+	Solution    string `arg:"-s" default:"choices" help:"choices | disjunction | negation"`
+	NoSolve     bool   `arg:"-n" default:"false"   help:"don't solve the puzzle"`
+	PrintSpaces bool   `arg:"-p" default:"false"   help:"print puzzle output with spaces between cells"`
+	File        string `arg:"positional"           help:"stdin if not given"`
 }
 
 func init() {
@@ -93,6 +94,7 @@ func init() {
 	program = solution.Solutions[args.Solution]
 	outformat = args.OutFormat
 	nosolve = args.NoSolve
+	tents.PrintSpaces = args.PrintSpaces
 }
 
 var (

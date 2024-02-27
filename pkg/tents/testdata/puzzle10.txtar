@@ -1,0 +1,25 @@
+
+from
+https://codegolf.stackexchange.com/questions/206786/verify-tents-and-trees-solution
+
+-- puzzle --
+
+6 6
+. T . T . . 2
+. . . . T . 1
+T . T . . . 1
+. . . . . T 2
+T . . . . . 1
+. . . . . . 0
+2 0 2 0 2 1
+
+-- solution --
+
+6 6
+. T A T A . 2
+A . . . T . 1
+T . T . A . 1
+A . A . . T 2
+T . . . . A 1
+. . . . . . 0
+2 0 2 0 2 1

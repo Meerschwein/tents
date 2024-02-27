@@ -42,14 +42,19 @@ func ParsePuzzle(input string) (Puzzle, error) {
 	puzzle := new(numRows, numCols)
 
 	for currRow, line := range lines[1 : numRows+1] {
-		board, tentNumStr, found := strings.Cut(line, " ")
-		if !found {
-			return Puzzle{}, errors.New("missing tent number")
-		} else if len(board) != numCols {
+		/* allow for one space between cells like this
+		   A T A 2
+		   T T . 0
+		   A T A 2
+		*/
+		line = strings.ReplaceAll(line, " ", "")
+
+		board := line[:numCols]
+		if len(board) != numCols {
 			return Puzzle{}, errors.New("number of columns does not match second number")
 		}
 
-		tentNum, err := strconv.Atoi(tentNumStr)
+		tentNum, err := strconv.Atoi(line[numCols:])
 		if err != nil {
 			return Puzzle{}, errors.New("tent number must be an integer")
 		}
@@ -84,14 +89,22 @@ func ParsePuzzle(input string) (Puzzle, error) {
 	return puzzle, nil
 }
 
+var PrintSpaces = false
+
 func (p Puzzle) ToPuzzle() string {
 	s := fmt.Sprint(p.Rows, " ", p.Columns, "\n")
 
 	for i, rows := range p.Board {
 		for _, cell := range rows {
 			s += cell.String()
+			if PrintSpaces {
+				s += " "
+			}
 		}
-		s += fmt.Sprint(" ", p.RowTentCount[i], "\n")
+		if !PrintSpaces {
+			s += " "
+		}
+		s += fmt.Sprint(p.RowTentCount[i], "\n")
 	}
 
 	for i, count := range p.ColumnTentCount {
