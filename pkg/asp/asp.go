@@ -50,7 +50,8 @@ func ParsePredicate(s string) (Predicate, error) {
 	return NewPredicate(name, args...), nil
 }
 
-// strings containing only whitespace are ignored
+// ParsePredicates parses a slice of strings containing only one predicate per string
+// and only integers as arguments.
 func ParsePredicates(input []string) ([]Predicate, error) {
 	preds := []Predicate{}
 	for _, line := range input {

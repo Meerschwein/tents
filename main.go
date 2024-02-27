@@ -17,6 +17,7 @@ type Args struct {
 	InFormat  string `arg:"-f" default:"puzzle"  help:"puzzle | asp"`
 	OutFormat string `arg:"-o" default:"puzzle"  help:"puzzle | asp"`
 	Solution  string `arg:"-s" default:"choices" help:"choices | disjunction | negation"`
+	NoSolve   bool   `arg:"-n" default:"false"   help:"don't solve the puzzle"`
 	File      string `arg:"positional"           help:"stdin if not given"`
 }
 
@@ -91,32 +92,37 @@ func init() {
 
 	program = solution.Solutions[args.Solution]
 	outformat = args.OutFormat
+	nosolve = args.NoSolve
 }
 
 var (
 	puzzle    tents.Puzzle
 	outformat string
 	program   string
+	nosolve   bool
 )
 
 func main() {
-	for _, p := range puzzle.ToAsp() {
-		program += p.String() + "\n"
-	}
+	if !nosolve {
+		for _, p := range puzzle.ToAsp() {
+			program += p.String() + "\n"
+		}
 
-	cr, err := clingo.Run(strings.NewReader(program))
-	if err != nil {
-		panic(err)
-	}
+		cr, err := clingo.Run(strings.NewReader(program))
+		if err != nil {
+			panic(err)
+		}
 
-	if !cr.GoodExitCode() {
-		fmt.Println(cr.ExitCode)
-		os.Exit(1)
-	}
+		fmt.Println(cr.Delimiter, cr.ExitCode)
 
-	puzzle, err = tents.ParseAsp(cr.Predicates)
-	if err != nil {
-		panic(err)
+		if !cr.GoodExitCode() {
+			os.Exit(1)
+		}
+
+		puzzle, err = tents.ParseAsp(cr.Predicates)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	switch outformat {
