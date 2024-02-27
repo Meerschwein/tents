@@ -83,6 +83,8 @@ func solutionTest(t *testing.T, p Puzzle, solutionData []byte) {
 		pstr += p.String()
 	}
 
+	solutions := map[string]Puzzle{}
+
 	for name, program := range solution.Solutions {
 		t.Run(name, func(t *testing.T) {
 			program += pstr
@@ -91,11 +93,6 @@ func solutionTest(t *testing.T, p Puzzle, solutionData []byte) {
 
 			if strings.TrimSpace(string(solutionData)) == "INCONSISTENT" {
 				assert.Equal(t, "INCONSISTENT", cr.Delimiter)
-				if cr.Delimiter == "ANSWER" {
-					p, err := ParseAsp(cr.Predicates)
-					assert.NoError(t, err)
-					t.Log("\n", p.ToPuzzle())
-				}
 				assert.Equal(t, clingo.QueryIsFalse.Error(), cr.ExitCode.Error())
 				return
 			}
@@ -109,7 +106,18 @@ func solutionTest(t *testing.T, p Puzzle, solutionData []byte) {
 			pe, err := ParsePuzzle(string(solutionData))
 			assert.NoError(t, err)
 			assertPuzzleEqual(t, pe, pa)
+
+			solutions[name] = pa
 		})
+	}
+
+	// all solutions should be equal
+	for k1, s1 := range solutions {
+		for k2, s2 := range solutions {
+			if k1 != k2 {
+				t.Run(k1+"=="+k2, func(t *testing.T) { assertPuzzleEqual(t, s1, s2) })
+			}
+		}
 	}
 }
 
