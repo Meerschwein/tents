@@ -1,5 +1,3 @@
-#import "@preview/fletcher:0.4.2" as fletcher: node, edge
-
 #set page(header: grid(
   columns: (1fr,) * 2,
   [Introduction to Artificial Intelligence I],
@@ -60,13 +58,14 @@ vendored with the project to ensure reproducibility.
 
 == Testing
 
-The tests are located in pkg/tents/testdata and are written in the txtarchive #footnote[#link("https://pkg.go.dev/golang.org/x/tools/txtar#hdr-Txtar_format")] format.
-Each file must contain a puzzle section. If a json section exists, the puzzle
-will be serialized and checked against the json. If a solution section exists,
-the puzzle will be solved and checked against the solution using all three
-solvers. The solvers will then be compared to check if they are equivalent. If
-an ASP section exists, the puzzle will be converted to ASP facts and checked
-against the ASP section.
+The tests are located in pkg/tents/testdata and are written in the txtarchive
+#footnote[#link("https://pkg.go.dev/golang.org/x/tools/txtar#hdr-Txtar_format")]
+format. Each file must contain a puzzle section. If a json section exists, the
+puzzle will be serialized and checked against the json. If a solution section
+exists, the puzzle will be solved and checked against the solution using all
+three solvers. The solvers will then be compared to check if they are
+equivalent. If an ASP section exists, the puzzle will be converted to ASP facts
+and checked against the ASP section.
 
 == Command line usage
 
