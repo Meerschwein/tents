@@ -115,7 +115,7 @@ func main() {
 			panic(err)
 		}
 
-		fmt.Println(cr.Delimiter, cr.ExitCode)
+		// fmt.Println(cr.Delimiter, cr.ExitCode)
 
 		if !cr.GoodExitCode() {
 			os.Exit(1)
