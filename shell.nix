@@ -10,5 +10,9 @@ in
       gopls
 
       clingo
+
+      typst
+      typst-fmt
+      typst-lsp
     ];
   }
