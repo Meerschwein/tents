@@ -12,15 +12,7 @@ The asp solutions are found in ./pkg/asp/solution
 example execution:
 
 ```raw
-$ cat puzzlefile
-5 10
-.......... 0
-......T... 2
-..T...T... 0
-.......... 1
-.......... 0
-0 0 1 0 0 0 1 1 0 0
-
+# puzzle from stdin
 $ cat puzzlefile | ./tents
 5 10
 .......... 0
@@ -30,7 +22,9 @@ $ cat puzzlefile | ./tents
 .......... 0
 0 0 1 0 0 0 1 1 0 0
 
-$ cat puzzlefile | ./tents -p
+# print spaces for easier verification
+# specify puzzlefile using a positional argument
+$ ./tents -p puzzlefile
 5 10
 . . . . . . . . . . 0
 . . A . . . T A . . 2
@@ -39,19 +33,15 @@ $ cat puzzlefile | ./tents -p
 . . . . . . . . . . 0
 0 0 1 0 0 0 1 1 0 0
 
-$ cat puzzlefile | ./tents -o asp
+# solve the puzzle and output aspfacts
+$ ./tents -o asp puzzlefile
 lines(5).
 columns(10).
 free(1,1).
     ...
 
-$ cat aspfile
-lines(5).
-columns(10).
-free(1,1).
-    ...
-
-$ cat aspfile | ./tents -f asp
+# take aspfacts as input and solve the puzzle
+$ ./tents -f asp aspfile
 5 10
 .......... 0
 ..A...TA.. 2
@@ -60,7 +50,9 @@ $ cat aspfile | ./tents -f asp
 .......... 0
 0 0 1 0 0 0 1 1 0 0
 
-$ cat aspfile | ./tents -f asp -n
+# take aspfacts but don't solve the puzzle
+# so convert it to puzzle notation
+$ ./tents -f asp -n aspfile
 5 10
 .......... 0
 ......T... 2
@@ -69,7 +61,8 @@ $ cat aspfile | ./tents -f asp -n
 .......... 0
 0 0 1 0 0 0 1 1 0 0
 
-$ cat puzzlefile | ./tents -s negation
+# use the negation solver
+$ ./tents -s negation puzzlefile
 5 10
 .......... 0
 ..A...TA.. 2
@@ -78,17 +71,14 @@ $ cat puzzlefile | ./tents -s negation
 .......... 0
 0 0 1 0 0 0 1 1 0 0
 
-$ ./tents -n -o asp puzzlefile | clingo /dev/stdin ./pkg/asp/solution/choice.asp
-clingo version 5.6.2
-Reading from /dev/stdin ...
-Solving...
-Answer: 1
- ...
-SATISFIABLE
-
-Models       : 1
-Calls        : 1
-Time         : 0.003s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
-CPU Time     : 0.003s
-
+# convert puzzle to facts and use clingo to solve the puzzle directly
+# and then use tents to display the result
+$ ./tents -n -o asp puzzlefile | clingo --outf 1 /dev/stdin ./pkg/asp/solution/choice.asp | sed -n '/ANSWER/{n;p;}' | sed 's/ /\n/g' | ./tents -f asp -n
+5 10
+.......... 0
+..A...TA.. 2
+..T...T... 0
+......A... 1
+.......... 0
+0 0 1 0 0 0 1 1 0 0
 ```
