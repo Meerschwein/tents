@@ -8,7 +8,7 @@ import (
 )
 
 func ParsePuzzle(input string) (Puzzle, error) {
-	lines := []string{}
+	var lines []string
 	for _, l := range strings.Split(input, "\n") { // remove empty lines
 		if l != "" {
 			lines = append(lines, l)

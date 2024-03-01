@@ -16,7 +16,7 @@ import (
 // https://www.mat.unical.it/aspcomp2013/files/aspoutput.txt
 type ExitCode int
 
-// this is a best guess at what the exit codes are
+// this is the best guess at what the exit codes are
 const (
 	Unknown                ExitCode = 0
 	Interrupted            ExitCode = 1
@@ -57,11 +57,11 @@ func (e ExitCode) Error() string {
 	}
 }
 
-func (cr ClingoResult) GoodExitCode() bool {
+func (cr Result) GoodExitCode() bool {
 	return cr.ExitCode == QueryIsTrue || cr.ExitCode == OptimaFound
 }
 
-type ClingoResult struct {
+type Result struct {
 	ExitCode   ExitCode
 	Delimiter  string
 	Predicates []asp.Predicate
@@ -69,20 +69,20 @@ type ClingoResult struct {
 	Err        bytes.Buffer
 }
 
-func Run(stdin io.Reader) (ClingoResult, error) {
+func Run(stdin io.Reader) (Result, error) {
 	c := exec.Command("clingo", "--outf=1", "-t", fmt.Sprint(runtime.NumCPU()))
 
-	cr := ClingoResult{}
+	cr := Result{}
 
 	c.Stdin = stdin
 	c.Stderr = &cr.Err
 	c.Stdout = &cr.Out
 
-	c.Run()
+	_ = c.Run()
 
 	cr.ExitCode = ExitCode(c.ProcessState.ExitCode())
 
-	out := []string{}
+	var out []string
 	for _, line := range strings.Split(cr.Out.String(), "\n") {
 		if util.IsBlank(line) || strings.HasPrefix(line, "%") {
 			continue
@@ -99,11 +99,11 @@ func Run(stdin io.Reader) (ClingoResult, error) {
 		return cr, nil
 	}
 	if len(out) == 0 {
-		return ClingoResult{}, fmt.Errorf("no output")
+		return Result{}, fmt.Errorf("no output")
 	}
 	preds, err := asp.ParsePredicates(strings.Split(out[0], " "))
 	if err != nil {
-		return ClingoResult{}, err
+		return Result{}, err
 	}
 
 	cr.Predicates = preds

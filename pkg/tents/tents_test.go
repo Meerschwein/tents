@@ -65,16 +65,16 @@ func TestParseTestFiles(t *testing.T) {
 
 func jsonPuzzleTest(t *testing.T, p Puzzle, jsonData []byte) {
 	var expectedJson Puzzle
-	err := json.Unmarshal([]byte(jsonData), &expectedJson)
+	err := json.Unmarshal(jsonData, &expectedJson)
 	assert.NoError(t, err)
 
 	assert.Equal(t, expectedJson, p)
 }
 
 func aspPuzzleTest(t *testing.T, p Puzzle, aspData []byte) {
-	asp, err := asp.ParsePredicates(strings.Split(string(aspData), "\n"))
+	preds, err := asp.ParsePredicates(strings.Split(string(aspData), "\n"))
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, asp, p.ToAsp())
+	assert.ElementsMatch(t, preds, p.ToAsp())
 }
 
 func solutionTest(t *testing.T, p Puzzle, solutionData []byte) {

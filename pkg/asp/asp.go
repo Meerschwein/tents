@@ -14,7 +14,7 @@ type Predicate struct {
 }
 
 func (p Predicate) String() string {
-	args := []string{}
+	var args []string
 	for _, arg := range p.Args {
 		args = append(args, fmt.Sprint(arg))
 	}
@@ -38,7 +38,7 @@ func ParsePredicate(s string) (Predicate, error) {
 
 	name := s[:lpar]
 
-	args := []int{}
+	var args []int
 	for _, arg := range strings.Split(s[lpar+1:rpar], ",") {
 		i, err := strconv.Atoi(arg)
 		if err != nil {
@@ -53,7 +53,7 @@ func ParsePredicate(s string) (Predicate, error) {
 // ParsePredicates parses a slice of strings containing only one predicate per string
 // and only integers as arguments.
 func ParsePredicates(input []string) ([]Predicate, error) {
-	preds := []Predicate{}
+	var preds []Predicate
 	for _, line := range input {
 		if util.IsBlank(line) {
 			continue
