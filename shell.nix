@@ -5,7 +5,7 @@ in
     packages = with pkgs; [
       delve
       go
-      go-tools
+      gotools
       gofumpt
       gopls
 
